@@ -110,21 +110,31 @@ namespace WinProxyUtil.WinINET
             }
             foreach (var Connection in Connections)
             {
-                ConsoleControl.WriteInfoLine($"{Key.Name}\\{Connection}");
                 if (Key.GetValue(Connection) is byte[] value)
                 {
-                    var config = new ProxyRegConfig(value);
-                    if (config.Magic != 0x46)
+                    try
                     {
-                        ConsoleControl.WriteErrorLine("Invalid Registry Value!");
+                        var config = new ProxyRegConfig(value);
+                        if (config.Magic != 0x46)
+                        {
+                            ConsoleControl.WriteErrorLine($"{Key.Name}\\{Connection}");
+                            ConsoleControl.WriteErrorLine("Invalid Registry Value");
+                        }
+                        else
+                        {
+                            ConsoleControl.WriteInfoLine($"{Key.Name}\\{Connection}");
+                            config.Print();
+                        }
                     }
-                    else
+                    catch
                     {
-                        config.Print();
+                        ConsoleControl.WriteErrorLine($"{Key.Name}\\{Connection}");
+                        ConsoleControl.WriteErrorLine("Invalid Registry Value");
                     }
                 }
                 else
                 {
+                    ConsoleControl.WriteWarningLine($"{Key.Name}\\{Connection}");
                     ConsoleControl.WriteWarningLine("Registry Value Does Not Exist");
                 }
                 Console.WriteLine();

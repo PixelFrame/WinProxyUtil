@@ -80,6 +80,7 @@ namespace WinProxyUtil.WinINET
                 else
                 {
                     ConsoleControl.WriteInfoLine($"Successfully set proxy on {Connection}");
+                    RefreshProxy();
                 }
             }
             finally
