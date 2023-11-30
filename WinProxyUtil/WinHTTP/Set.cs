@@ -1,10 +1,6 @@
 ﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+using WinProxyUtil.Misc;
 
 namespace WinProxyUtil.WinHTTP
 {
@@ -15,7 +11,7 @@ namespace WinProxyUtil.WinHTTP
             var proxy = new WINHTTP_PROXY_INFO();
             if (ProxyServer == null)
             {
-                proxy.dwAccessType = AccessType.WINHTTP_ACCESS_TYPE_NAMED_PROXY;
+                proxy.dwAccessType = AccessType.WINHTTP_ACCESS_TYPE_NO_PROXY;
             }
             else
             {
@@ -23,14 +19,14 @@ namespace WinProxyUtil.WinHTTP
                 proxy.lpszProxy = ProxyServer;
                 proxy.lpszProxyBypass = BypassList;
             }
-            if(PInvoke.WinHttpSetDefaultProxyConfiguration(ref proxy))
+            if (PInvoke.WinHttpSetDefaultProxyConfiguration(ref proxy))
             {
-                Console.WriteLine("Successfully set WinHTTP default proxy");
+                ConsoleControl.WriteInfoLine("Successfully set WinHTTP default proxy");
             }
             else
             {
                 var err = Marshal.GetLastWin32Error();
-                Console.WriteLine($"Failed to set WinHTTP default proxy. Error {PInvoke.ErrorMessage[err]}");
+                ConsoleControl.WriteErrorLine($"Failed to set WinHTTP default proxy. Error {err}");
             }
         }
 
@@ -41,8 +37,9 @@ namespace WinProxyUtil.WinHTTP
 
         internal static void SetDisableWpad(int value)
         {
-            var key = Registry.LocalMachine.OpenSubKey(Query.DisableWpadKey[1]);
+            var key = Registry.LocalMachine.CreateSubKey(Query.DisableWpadKey[1]);
             key.SetValue("DisableWpad", value, RegistryValueKind.DWord);
+            ConsoleControl.WriteInfoLine($"Successfully set DisableWpad to {value}");
         }
     }
 }

@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WinProxyUtil.Misc
 {
@@ -29,7 +25,7 @@ namespace WinProxyUtil.Misc
 
         internal static void Set(int target, string value, bool isMachine)
         {
-            if(isMachine)
+            if (isMachine)
             {
                 Environment.SetEnvironmentVariable(vars[target], value, EnvironmentVariableTarget.Machine);
             }

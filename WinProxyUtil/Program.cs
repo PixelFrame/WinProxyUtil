@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using WinProxyUtil.Misc;
 
 namespace WinProxyUtil
@@ -19,9 +14,10 @@ namespace WinProxyUtil
                 else if (args[0].Equals("set", StringComparison.OrdinalIgnoreCase)) { ProcessSet(args); }
                 else { PrintUsage(); }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                if (e is IndexOutOfRangeException) { PrintUsage(); }
+                if (e is IndexOutOfRangeException || e is InvalidOperationException) { PrintUsage(); }
+                else if (e is ArgumentException) { ConsoleControl.WriteErrorLine(e.Message); Global.StatusCode = 87; }
                 else { ConsoleControl.WriteErrorLine(e.Message); }
             }
             finally
@@ -45,19 +41,19 @@ namespace WinProxyUtil
                         var allUsers = false;
                         var includeVpn = false;
                         var includeWow = false;
-                        for (int i = 3; i< args.Length; ++i)
+                        for (int i = 3; i < args.Length; ++i)
                         {
-                            switch(args[i].ToLower())
+                            switch (args[i].ToLower())
                             {
-                                case "-u": allUsers = true;break;
-                                case "-v": includeVpn = true;break;
-                                case "-w": includeWow = true;break;
-                                default: throw new ArgumentException();
+                                case "-u": allUsers = true; break;
+                                case "-v": includeVpn = true; break;
+                                case "-w": includeWow = true; break;
+                                default: throw new ArgumentException($"Invalid arugment: {args[i]}");
                             }
                         }
                         Commands.QueryWinINETReg(allUsers, includeVpn, includeWow);
                     }
-                    else if(args[2].Equals("active", StringComparison.OrdinalIgnoreCase))
+                    else if (args[2].Equals("active", StringComparison.OrdinalIgnoreCase))
                     {
                         var includeVpn = false;
                         for (int i = 3; i < args.Length; ++i)
@@ -65,7 +61,7 @@ namespace WinProxyUtil
                             switch (args[i].ToLower())
                             {
                                 case "-v": includeVpn = true; break;
-                                default: throw new ArgumentException();
+                                default: throw new ArgumentException($"Invalid arugment: {args[i]}");
                             }
                         }
                         Commands.QueryWinINETProxy(includeVpn);
@@ -78,17 +74,17 @@ namespace WinProxyUtil
                 case "winhttp":
                     if (args[2].Equals("default", StringComparison.OrdinalIgnoreCase))
                     {
-                        if(args.Length > 3) throw new ArgumentException();
+                        if (args.Length > 3) throw new ArgumentException("Too many arguments");
                         Commands.QueryWinHTTPDefault();
                     }
                     else if (args[2].Equals("ie", StringComparison.OrdinalIgnoreCase))
                     {
-                        if(args.Length > 3) throw new ArgumentException();
+                        if (args.Length > 3) throw new ArgumentException("Too many arguments");
                         Commands.QueryWinHTTPIE();
                     }
                     else if (args[2].Equals("wpad", StringComparison.OrdinalIgnoreCase))
                     {
-                        if(args.Length > 3) throw new ArgumentException();
+                        if (args.Length > 3) throw new ArgumentException("Too many arguments");
                         Commands.QueryWinHTTPWpad();
                     }
                     else if (args[2].Equals("proxyforurl", StringComparison.OrdinalIgnoreCase))
@@ -98,10 +94,9 @@ namespace WinProxyUtil
                         var useIE = false;
                         var useManual = false;
                         var pacUrl = string.Empty;
-                        if(args.Length < 5)
+                        if (args.Length < 5)
                         {
-                            ConsoleControl.WriteErrorLine("Please specify at least one PAC source");
-                            throw new ArgumentException();
+                            throw new ArgumentException("Please specify at least one PAC source");
                         }
                         for (int i = 4; i < args.Length; ++i)
                         {
@@ -110,7 +105,7 @@ namespace WinProxyUtil
                                 case "-a": useWpad = true; break;
                                 case "-i": useIE = true; break;
                                 case "-m": useIE = true; pacUrl = args[++i]; break;
-                                default: throw new ArgumentException();
+                                default: throw new ArgumentException($"Invalid arugment: {args[i]}");
                             }
                         }
                         Commands.QueryWinHTTPProxyForUrl(url, useWpad, useIE, useManual, pacUrl);
@@ -125,8 +120,7 @@ namespace WinProxyUtil
                     var machineEnv = false;
                     if (args.Length < 3)
                     {
-                        ConsoleControl.WriteErrorLine("Please specify at least one environment variable context");
-                        throw new ArgumentException();
+                        throw new ArgumentException("Please specify at least one environment variable context");
                     }
 
                     for (int i = 2; i < args.Length; ++i)
@@ -135,7 +129,7 @@ namespace WinProxyUtil
                         {
                             case "-u": userEnv = true; break;
                             case "-m": machineEnv = true; break;
-                            default: throw new ArgumentException();
+                            default: throw new ArgumentException($"Invalid arugment: {args[i]}");
                         }
                     }
                     Commands.QueryEnvVar(userEnv, machineEnv);
@@ -143,7 +137,7 @@ namespace WinProxyUtil
                 case "all":
                     Commands.QueryAll();
                     break;
-                default :
+                default:
                     PrintUsage();
                     break;
             }
@@ -164,25 +158,25 @@ namespace WinProxyUtil
                     {
                         switch (args[i].ToLower())
                         {
-                            case "-m": if (proxySettingsPerUser != -1) throw new ArgumentException(); else proxySettingsPerUser = 0; break;
-                            case "-u": if (proxySettingsPerUser != -1) throw new ArgumentException(); else proxySettingsPerUser = 1; break;
+                            case "-m": if (proxySettingsPerUser != -1) throw new ArgumentException("-m and -u cannot be used at the same time"); else proxySettingsPerUser = 0; break;
+                            case "-u": if (proxySettingsPerUser != -1) throw new ArgumentException("-m and -u cannot be used at the same time"); else proxySettingsPerUser = 1; break;
                             case "-v": includeVpn = true; break;
-                            case "-r": if (proxyType != -1) throw new ArgumentException(); else proxyType = 0; break;
-                            case "-a": if (proxyType != -1) throw new ArgumentException(); else proxyType = 1; break;
-                            case "-p": if (proxyType != -1) throw new ArgumentException(); else proxyType = 2; pacUrl = args[++i]; break;
+                            case "-r": if (proxyType != -1) throw new ArgumentException("-r -a -p -n cannot be used at the same time"); else proxyType = 0; break;
+                            case "-a": if (proxyType != -1) throw new ArgumentException("-r -a -p -n cannot be used at the same time"); else proxyType = 1; break;
+                            case "-p": if (proxyType != -1) throw new ArgumentException("-r -a -p -n cannot be used at the same time"); else proxyType = 2; pacUrl = args[++i]; break;
                             case "-n":
-                                if (proxyType != -1) throw new ArgumentException();
+                                if (proxyType != -1) throw new ArgumentException("-r -a -p -n cannot be used at the same time");
                                 else
                                 {
-                                    proxyType = 3; 
+                                    proxyType = 3;
                                     proxyServer = args[++i];
                                     if (i + 1 < args.Length && args[i + 1][0] != '-') bypassList = args[++i];
                                 }
                                 break;
-                            default: throw new ArgumentException();
+                            default: throw new ArgumentException($"Invalid arugment: {args[i]}");
                         }
                     }
-                    if(proxyType == -1) throw new ArgumentException();
+                    if (proxyType == -1 && proxySettingsPerUser == -1) throw new ArgumentException("Please specify the proxy to be set");
                     Commands.SetWinINETProxy(proxySettingsPerUser, includeVpn, proxyType, pacUrl, proxyServer, bypassList);
                     break;
                 case "winhttp":
@@ -194,11 +188,11 @@ namespace WinProxyUtil
                     {
                         switch (args[i].ToLower())
                         {
-                            case "-x": if (disableWpad != -1) throw new ArgumentException(); else disableWpad = 1; break;
-                            case "-y": if (disableWpad != -1) throw new ArgumentException(); else disableWpad = 0; break;
-                            case "-r": if (winhttpProxyType != -1) throw new ArgumentException(); else proxyType = 0; break;
+                            case "-x": if (disableWpad != -1) throw new ArgumentException("-x and -y cannot be used at the same time"); else disableWpad = 1; break;
+                            case "-y": if (disableWpad != -1) throw new ArgumentException("-x and -y cannot be used at the same time"); else disableWpad = 0; break;
+                            case "-r": if (winhttpProxyType != -1) throw new ArgumentException("-r and -n cannot be used at the same time"); else winhttpProxyType = 0; break;
                             case "-n":
-                                if (winhttpProxyType != -1) throw new ArgumentException();
+                                if (winhttpProxyType != -1) throw new ArgumentException("-r and -n cannot be used at the same time");
                                 else
                                 {
                                     winhttpProxyType = 1;
@@ -206,15 +200,16 @@ namespace WinProxyUtil
                                     if (i + 1 < args.Length && args[i + 1][0] != '-') winhttpBypassList = args[++i];
                                 }
                                 break;
-                            default: throw new ArgumentException();
+                            default: throw new ArgumentException($"Invalid argument: {args[i]}");
                         }
                     }
-                    if (winhttpProxyType == -1) throw new ArgumentException();
+                    if (winhttpProxyType == -1 && disableWpad == -1) throw new ArgumentException();
                     Commands.SetWinHTTPProxy(disableWpad, winhttpProxyType, winhttpProxyServer, winhttpBypassList);
                     break;
                 case "envvar":
                     var userEnv = false;
                     var machineEnv = false;
+                    var reset = false;
                     string httpProxy = null;
                     string httpsProxy = null;
                     string ftpProxy = null;
@@ -232,78 +227,23 @@ namespace WinProxyUtil
                             case "-f": ftpProxy = args[++i]; break;
                             case "-a": allProxy = args[++i]; break;
                             case "-n": noProxy = args[++i]; break;
-                            default: throw new ArgumentException();
+                            case "-r": reset = true; break;
+                            default: throw new ArgumentException($"Invalid argument: {args[i]}");
                         }
                     }
-                    if (userEnv || machineEnv == false)
+                    if (!(userEnv || machineEnv))
                     {
-                        ConsoleControl.WriteErrorLine("Please specify at least one environment variable context");
-                        throw new ArgumentException();
+                        throw new ArgumentException("Please specify at least one environment variable context");
                     }
-                    Commands.SetEnvVar(userEnv, machineEnv, httpProxy, httpsProxy, ftpProxy, allProxy, noProxy);
+                    Commands.SetEnvVar(userEnv, machineEnv, reset, httpProxy, httpsProxy, ftpProxy, allProxy, noProxy);
                     break;
-                default : throw new InvalidOperationException();
+                default: throw new InvalidOperationException();
             }
         }
 
-        const string UsageMessage =
-@"Windows Proxy Utility
-Query and set proxy settings on Windows, including WinINET, WinHTTP and environment variables.
-
-*******************************************************************************************************************
-
-WinProxyUtil query wininet <reg [-u] [-v] [-w] | active [-v]>
-    reg         Query proxy settings in registry
-    active      Query proxy settings by calling InternetQueryOption
-    -u          Query all users' registry. If not specified, only current user's registry will be queried.
-    -v          Include proxy settings of RAS connections
-    -w          Include WOW6432Node
-
-WinProxyUtil query winhttp <default | ie | wpad | proxyforurl <URL> [-a] [-i] [-m <AutoConfigURL>]>
-    default     Query WinHTTP default proxy, same as ""netsh winhttp show proxy""
-    ie          Query active WinINET proxy by calling WinHttpGetIEProxyConfigForCurrentUser
-    wpad        Detect if WPAD is available in network
-    proxyforurl Get proxy config from PAC
-    -a          PAC from WPAD
-    -i          PAC from WinINET proxy
-    -m          Manually specifiy PAC URL
-
-WinProxyUtil query envvar <[-m] [-u]>
-    -m          Machine level environment variable
-    -u          User level environment variable
-
-WinProxyUtil query all
-
-*******************************************************************************************************************
-
-WinProxyUtil set wininet [-m | -u] [-v] <-r | -a | -p <AutoConfigURL> | -m <ProxyServer> [<BypassList>]>
-    -m          Set ProxySettingsPerUser=0
-    -u          Set ProxySettingsPerUser=1
-    -v          Include proxy settings of RAS connections
-    -r          Reset proxy setting
-    -a          Set auto detect
-    -p          Set PAC URL
-    -n          Set named proxy
-
-WinProxyUtil set winhttp [-x | -y] <-r | -m <ProxyServer> [<BypassList>]>
-    -x          Set DisableWpad=1
-    -y          Set DisableWpad=0
-    -r          Reset WinHTTP default proxy setting
-    -n          Set WinHTTP default proxy
-
-WinProxyUtil set envvar  [-m] [-u] <[-h <http_proxy>] [-s <HTTPS_PROXY>] [-f <FTP_PROXY>] [-a <ALL_PROXY>] [-n <NO_PROXY>]>
-    -m          Machine level environment variable
-    -u          User level environment variable
-    -h          Set http_proxy
-    -s          Set HTTPS_PROXY
-    -f          Set FTP_PROXY
-    -a          Set ALL_PROXY
-    -n          Set NO_PROXY
-";
-
         static void PrintUsage()
         {
-            Console.WriteLine(UsageMessage);
+            Console.WriteLine(Global.UsageMessage);
             Global.StatusCode = 87;
         }
     }

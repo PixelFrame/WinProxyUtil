@@ -1,11 +1,7 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using WinProxyUtil.Misc;
 
 namespace WinProxyUtil.WinHTTP
@@ -14,8 +10,8 @@ namespace WinProxyUtil.WinHTTP
     {
         internal static readonly string[] DisableWpadKey =
         {
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp\DisableWpad",
-            @"SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp\DisableWpad",
+            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp",
+            @"SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\Internet Settings\WinHttp",
         };
 
         internal static void QueryDisableWpad()
@@ -108,7 +104,7 @@ namespace WinProxyUtil.WinHTTP
                 fAutoLogonIfChallenged = true
             };
             var proxy = new WINHTTP_PROXY_INFO();
-            if(PInvoke.WinHttpGetProxyForUrl(handle, Url, ref option, ref proxy))
+            if (PInvoke.WinHttpGetProxyForUrl(handle, Url, ref option, ref proxy))
             {
                 Console.WriteLine($"AccessType  : {proxy.dwAccessType}");
                 Console.WriteLine($"ProxyServer : {proxy.lpszProxy}");
@@ -117,7 +113,8 @@ namespace WinProxyUtil.WinHTTP
             else
             {
                 var err = Marshal.GetLastWin32Error();
-                Console.WriteLine($"WinHttpGetProxyForUrl failed. Error {PInvoke.ErrorMessage[err]}");
+                Console.WriteLine($"WinHttpGetProxyForUrl failed. Error {err}");
+                Global.StatusCode = err;
             }
             PInvoke.WinHttpCloseHandle(handle);
         }

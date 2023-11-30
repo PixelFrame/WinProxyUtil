@@ -1,28 +1,23 @@
 ﻿using Microsoft.Win32;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+using WinProxyUtil.Misc;
 
 namespace WinProxyUtil.WinINET
 {
     internal static class Set
     {
-        internal static bool ClearProxy(string Connection, out int Win32Error)
+        internal static void ClearProxy(string Connection)
         {
-            return SetProxy(false, "", "", "", Connection, out Win32Error);
+            SetProxy(false, "", "", "", Connection);
         }
 
-        internal static bool SetProxy(bool? AutoDetect, string PacUrl, string ProxyServer, string ProxyBypass, string Connection, out int Win32Error)
+        internal static void SetProxy(bool? AutoDetect, string PacUrl, string ProxyServer, string ProxyBypass, string Connection)
         {
             var optionCount = 1;
             if (PacUrl != null) optionCount++;
             if (ProxyServer != null) optionCount++;
             if (ProxyBypass != null) optionCount++;
-
-            bool iRes = false;
 
             var optIdx = 0;
             var list = new INTERNET_PER_CONN_OPTION_LIST();
@@ -52,7 +47,7 @@ namespace WinProxyUtil.WinINET
                 }
                 if (ProxyServer != null)
                 {
-                    if(!string.IsNullOrWhiteSpace(ProxyServer)) option[0].Value.dwValue |= PerConnFlag.PROXY_TYPE_PROXY;
+                    if (!string.IsNullOrWhiteSpace(ProxyServer)) option[0].Value.dwValue |= PerConnFlag.PROXY_TYPE_PROXY;
                     option[optIdx].dwOption = PerConnOption.INTERNET_PER_CONN_PROXY_SERVER;
                     option[optIdx].Value.pszValue = pszProxyServer;
                     optIdx++;
@@ -76,8 +71,16 @@ namespace WinProxyUtil.WinINET
                 list.dwOptionError = 0;
                 list.pOptions = pOptions;
 
-                iRes = PInvoke.InternetSetOption(IntPtr.Zero, OptionFlag.INTERNET_OPTION_PER_CONNECTION_OPTION, ref list, Marshal.SizeOf(list));
-                Win32Error = Marshal.GetLastWin32Error();
+                if (!PInvoke.InternetSetOption(IntPtr.Zero, OptionFlag.INTERNET_OPTION_PER_CONNECTION_OPTION, ref list, Marshal.SizeOf(list)))
+                {
+                    var err = Marshal.GetLastWin32Error();
+                    ConsoleControl.WriteErrorLine($"Failed to set proxy on {Connection}, error {err}");
+                    Global.StatusCode = err;
+                }
+                else
+                {
+                    ConsoleControl.WriteInfoLine($"Successfully set proxy on {Connection}");
+                }
             }
             finally
             {
@@ -87,18 +90,30 @@ namespace WinProxyUtil.WinINET
                 Marshal.FreeHGlobal(pOptions);
                 Marshal.FreeHGlobal(pListBuffer);
             }
-            return iRes;
         }
 
-        internal static bool SetProxyPerUser(int Value)
+        internal static void RefreshProxy()
         {
-            try
+            int err;
+            if (!PInvoke.InternetSetOption(IntPtr.Zero, OptionFlag.INTERNET_OPTION_PROXY_SETTINGS_CHANGED, IntPtr.Zero, 0))
             {
-                var key = Registry.LocalMachine.OpenSubKey(@"Software\Policies\Microsoft\Windows\CurrentVersion\Internet Settings");
-                key.SetValue("ProxySettingsPerUser", Value, RegistryValueKind.DWord);
+                err = Marshal.GetLastWin32Error();
+                ConsoleControl.WriteErrorLine($"Failed to invoke PROXY_SETTINGS_CHANGED, error {err}");
+                Global.StatusCode = err;
+                return;
             }
-            catch { return false; }
-            return true;
+            if (!PInvoke.InternetSetOption(IntPtr.Zero, OptionFlag.INTERNET_OPTION_REFRESH, IntPtr.Zero, 0))
+            {
+                err = Marshal.GetLastWin32Error();
+                ConsoleControl.WriteErrorLine($"Failed to invoke REFRESH, error {err}");
+                Global.StatusCode = err;
+            }
+        }
+
+        internal static void SetProxyPerUser(int Value)
+        {
+            var key = Registry.LocalMachine.CreateSubKey(@"Software\Policies\Microsoft\Windows\CurrentVersion\Internet Settings");
+            key.SetValue("ProxySettingsPerUser", Value, RegistryValueKind.DWord);
         }
     }
 }

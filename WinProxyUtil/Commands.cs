@@ -1,16 +1,13 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using WinProxyUtil.Misc;
 
 namespace WinProxyUtil
 {
     internal static class Commands
     {
-        static readonly string splitter = "*******************************************************************************************************************";
+        const string splitter = "*******************************************************************************************************************";
         static readonly string[] defaultConn = new string[]
             {
                 "DefaultConnectionSettings", "SavedLegacySettings"
@@ -34,7 +31,7 @@ namespace WinProxyUtil
             var hives = new List<RegistryKey>();
             if (AllUsers)
             {
-                _ = new AdminRequiredAttribute();
+                UAC.EnsureAdmin();
                 var hku = Registry.Users;
                 foreach (var u in hku.GetSubKeyNames())
                 {
@@ -160,9 +157,9 @@ namespace WinProxyUtil
             }
         }
 
-        [AdminRequired]
         internal static void QueryAll()
         {
+            UAC.EnsureAdmin();
             QueryWinINETProxy(true);
             Console.WriteLine(splitter);
             QueryWinINETReg(true, true, true);
@@ -183,120 +180,118 @@ namespace WinProxyUtil
         {
             if (proxySettingsPerUser != -1)
             {
+                UAC.EnsureAdmin();
                 WinINET.Set.SetProxyPerUser(proxySettingsPerUser);
             }
 
+            if (proxyType == -1) return;
             var conns = new List<string>() { "DefaultConnectionSettings" };
             if (includeVpn)
             {
                 conns.AddRange(WinINET.Query.GetRasEntries());
             }
 
-            int err;
             foreach (var conn in conns)
             {
                 switch (proxyType)
                 {
                     case 0:
-                        if (WinINET.Set.ClearProxy(conn, out err)) ConsoleControl.WriteInfoLine($"Successfully cleared proxy on {conn}");
-                        else ConsoleControl.WriteErrorLine($"Failed to clear proxy on {conn}, error {err}");
+                        WinINET.Set.ClearProxy(conn);
                         break;
                     case 1:
-                        if (WinINET.Set.SetProxy(true, null, null, null, conn, out err)) ConsoleControl.WriteInfoLine($"Successfully set proxy on {conn}");
-                        else ConsoleControl.WriteErrorLine($"Failed to set proxy on {conn}, error {err}");
+                        WinINET.Set.SetProxy(true, null, null, null, conn);
                         break;
                     case 2:
-                        if (WinINET.Set.SetProxy(null, pacUrl, null, null, conn, out err)) ConsoleControl.WriteInfoLine($"Successfully set proxy on {conn}");
-                        else ConsoleControl.WriteErrorLine($"Failed to set proxy on {conn}, error {err}");
+                        WinINET.Set.SetProxy(null, pacUrl, null, null, conn);
                         break;
                     case 3:
-                        if (WinINET.Set.SetProxy(null, null, proxyServer, bypassList, conn, out err)) ConsoleControl.WriteInfoLine($"Successfully set proxy on {conn}");
-                        else ConsoleControl.WriteErrorLine($"Failed to set proxy on {conn}, error {err}");
+                        WinINET.Set.SetProxy(null, null, proxyServer, bypassList, conn);
                         break;
                 }
+                if (Global.StatusCode != 0) break;
             }
         }
 
-        [AdminRequired]
         internal static void SetWinHTTPProxy(int DisableWpad, int WinhttpProxyType, string ProxyServer, string BypassList)
         {
+            UAC.EnsureAdmin();
             if (DisableWpad != -1)
             {
-                try
-                {
-                    WinHTTP.Set.SetDisableWpad(DisableWpad);
-                    ConsoleControl.WriteInfoLine("Successfully set DisableWpad");
-                }
-                catch (Exception e)
-                {
-                    ConsoleControl.WriteErrorLine($"Failed to set DisableWpad, {e.Message}");
-                }
+                WinHTTP.Set.SetDisableWpad(DisableWpad);
             }
             if (WinhttpProxyType == 0)
             {
-                try
-                {
-                    WinHTTP.Set.ResetDefaultProxy();
-                    ConsoleControl.WriteInfoLine("Successfully reset WinHTTP default proxy");
-                }
-                catch (Exception e)
-                {
-                    ConsoleControl.WriteErrorLine($"Failed to reset WinHTTP default proxy, {e.Message}");
-                }
+                WinHTTP.Set.ResetDefaultProxy();
             }
             else
             {
-                try
-                {
-                    WinHTTP.Set.SetDefaultProxy(ProxyServer, BypassList);
-                    ConsoleControl.WriteInfoLine("Successfully set WinHTTP default proxy");
-                }
-                catch (Exception e)
-                {
-                    ConsoleControl.WriteErrorLine($"Failed to set WinHTTP default proxy, {e.Message}");
-                }
+                WinHTTP.Set.SetDefaultProxy(ProxyServer, BypassList);
             }
         }
 
-        internal static void SetEnvVar(bool UserEnv, bool MachineEnv, string HttpProxy, string HttpsProxy, string FtpProxy, string AllProxy, string NoProxy)
+        internal static void SetEnvVar(bool UserEnv, bool MachineEnv, bool Reset, string HttpProxy, string HttpsProxy, string FtpProxy, string AllProxy, string NoProxy)
         {
             if (UserEnv)
             {
                 try
                 {
-                    EnvVar.Set(0, HttpProxy, false);
-                    EnvVar.Set(1, HttpsProxy, false);
-                    EnvVar.Set(2, FtpProxy, false);
-                    EnvVar.Set(3, AllProxy, false);
-                    EnvVar.Set(4, NoProxy, false);
+                    if (Reset)
+                    {
+                        EnvVar.Set(0, null, false);
+                        EnvVar.Set(1, null, false);
+                        EnvVar.Set(2, null, false);
+                        EnvVar.Set(3, null, false);
+                        EnvVar.Set(4, null, false);
+                    }
+                    else
+                    {
+                        if (HttpProxy != null) EnvVar.Set(0, HttpProxy, false);
+                        if (HttpsProxy != null) EnvVar.Set(1, HttpsProxy, false);
+                        if (FtpProxy != null) EnvVar.Set(2, FtpProxy, false);
+                        if (AllProxy != null) EnvVar.Set(3, AllProxy, false);
+                        if (NoProxy != null) EnvVar.Set(4, NoProxy, false);
+                    }
                     ConsoleControl.WriteInfoLine("Successfully set user proxy environment variables");
                 }
                 catch (Exception e)
                 {
                     ConsoleControl.WriteErrorLine($"Failed to set user proxy environment variables, {e.Message}");
+                    Global.StatusCode = e.HResult;
                 }
             }
             if (MachineEnv)
             {
-                SetEnvVarMachine(HttpProxy, HttpsProxy, FtpProxy, AllProxy, NoProxy);
+                SetEnvVarMachine(Reset, HttpProxy, HttpsProxy, FtpProxy, AllProxy, NoProxy);
             }
         }
 
-        [AdminRequired]
-        private static void SetEnvVarMachine(string HttpProxy, string HttpsProxy, string FtpProxy, string AllProxy, string NoProxy)
+        private static void SetEnvVarMachine(bool Reset, string HttpProxy, string HttpsProxy, string FtpProxy, string AllProxy, string NoProxy)
         {
+            UAC.EnsureAdmin();
             try
             {
-                EnvVar.Set(0, HttpProxy, true);
-                EnvVar.Set(1, HttpsProxy, true);
-                EnvVar.Set(2, FtpProxy, true);
-                EnvVar.Set(3, AllProxy, true);
-                EnvVar.Set(4, NoProxy, true);
+                if (Reset)
+                {
+                    EnvVar.Set(0, null, true);
+                    EnvVar.Set(1, null, true);
+                    EnvVar.Set(2, null, true);
+                    EnvVar.Set(3, null, true);
+                    EnvVar.Set(4, null, true);
+                }
+                else
+                {
+                    if (HttpProxy != null) EnvVar.Set(0, HttpProxy, true);
+                    if (HttpsProxy != null) EnvVar.Set(1, HttpsProxy, true);
+                    if (FtpProxy != null) EnvVar.Set(2, FtpProxy, true);
+                    if (AllProxy != null) EnvVar.Set(3, AllProxy, true);
+                    if (NoProxy != null) EnvVar.Set(4, NoProxy, true);
+                }
                 ConsoleControl.WriteInfoLine("Successfully set machine proxy environment variables");
             }
             catch (Exception e)
             {
                 ConsoleControl.WriteErrorLine($"Failed to set machine proxy environment variables, {e.Message}");
+                Global.StatusCode = e.HResult;
             }
 
         }

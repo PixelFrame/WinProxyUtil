@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace WinProxyUtil.Misc
 {
@@ -33,14 +29,10 @@ namespace WinProxyUtil.Misc
             Process.Start(psi);
             Environment.Exit(-1);
         }
-    }
 
-    [AttributeUsage(AttributeTargets.Method)]
-    internal class AdminRequiredAttribute: Attribute
-    {
-        public AdminRequiredAttribute()
+        public static void EnsureAdmin()
         {
-            if(!UAC.IsUserAnAdmin())
+            if (!IsUserAnAdmin())
             {
                 Global.StatusCode = 5;
                 throw new Exception("The specified operation needs Administrator privilege.");

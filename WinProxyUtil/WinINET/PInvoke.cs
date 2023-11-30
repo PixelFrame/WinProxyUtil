@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WinProxyUtil.WinINET
 {
@@ -14,6 +10,9 @@ namespace WinProxyUtil.WinINET
 
         [DllImport("wininet.dll", SetLastError = true, CharSet = CharSet.Auto)]
         internal static extern bool InternetSetOption(IntPtr hInternet, OptionFlag dwOption, ref INTERNET_PER_CONN_OPTION_LIST lpBuffer, int dwBufferLength);
+
+        [DllImport("wininet.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        internal static extern bool InternetSetOption(IntPtr hInternet, OptionFlag dwOption, IntPtr lpBuffer, int dwBufferLength);
 
         [DllImport("rasapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         internal static extern uint RasEnumEntries(
@@ -56,8 +55,10 @@ namespace WinProxyUtil.WinINET
 
     enum OptionFlag : uint
     {
+        INTERNET_OPTION_REFRESH = 37,
+        INTERNET_OPTION_PROXY = 38,
         INTERNET_OPTION_PER_CONNECTION_OPTION = 75,
-        INTERNET_OPTION_PROXY = 38
+        INTERNET_OPTION_PROXY_SETTINGS_CHANGED = 95,
     }
 
     enum PerConnOption : uint
