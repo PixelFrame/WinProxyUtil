@@ -21,10 +21,7 @@ namespace WinProxyUtil.Misc
 
         internal static void WriteInfoLine2(string msg)
         {
-            var temp = Console.BackgroundColor;
-            Console.BackgroundColor = InfoColor;
-            Console.WriteLine(msg);
-            Console.BackgroundColor = temp;
+            WriteColoredLine(msg, RegularColor, InfoColor);
         }
 
         internal static void WriteErrorLine(string msg)
@@ -32,11 +29,24 @@ namespace WinProxyUtil.Misc
             WriteColoredLine(msg, ErrorColor);
         }
 
-        internal static void WriteColoredLine(string msg, ConsoleColor color)
+        internal static void WriteColoredLine(string msg, ConsoleColor foreColor)
         {
-            Console.ForegroundColor = color;
+            var originalFore = Console.ForegroundColor;
+            Console.ForegroundColor = foreColor;
             Console.WriteLine(msg);
-            Console.ForegroundColor = RegularColor;
+            Console.ForegroundColor = originalFore;
+        }
+
+        internal static void WriteColoredLine(string msg, ConsoleColor foreColor, ConsoleColor backColor)
+        {
+            var originalFore = Console.ForegroundColor;
+            var originalBack = Console.BackgroundColor;
+            Console.ForegroundColor = foreColor;
+            Console.BackgroundColor = backColor;
+            Console.Write(msg);
+            Console.ForegroundColor = originalFore;
+            Console.BackgroundColor = originalBack;
+            Console.WriteLine();
         }
     }
 }
