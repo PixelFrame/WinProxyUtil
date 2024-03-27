@@ -104,7 +104,7 @@ namespace WinProxyUtil
                             {
                                 case "-a": useWpad = true; break;
                                 case "-i": useIE = true; break;
-                                case "-m": useIE = true; pacUrl = args[++i]; break;
+                                case "-m": useManual = true; pacUrl = args[++i]; break;
                                 default: throw new ArgumentException($"Invalid arugment: {args[i]}");
                             }
                         }
